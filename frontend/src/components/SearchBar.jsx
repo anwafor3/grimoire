@@ -5,7 +5,7 @@ const GAMES = [
   'Dark Souls 3',
   'Bloodborne',
   'Sekiro',
-  'Baldur\'s Gate 3',
+  "Baldur's Gate 3",
   'Final Fantasy XVI',
   'Monster Hunter World',
   'God of War',
@@ -23,7 +23,8 @@ export default function SearchBar({ query, setQuery, game, setGame, onSearch, lo
       <select
         value={game}
         onChange={e => setGame(e.target.value)}
-        className="shimmer-btn bg-gradient-to-r from-purple-600 via-violet-500 to-purple-600 hover:from-purple-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition-colors shrink-0"
+        className="bg-[#1a1625] border border-purple-800/40 text-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/60 sm:w-48 shrink-0"
+      >
         {GAMES.map(g => (
           <option key={g} value={g}>{g}</option>
         ))}
@@ -36,12 +37,12 @@ export default function SearchBar({ query, setQuery, game, setGame, onSearch, lo
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKey}
           placeholder="Search boss, enemy, or creature..."
-          className="flex-1 bg-[#1a1625] border border-purple-800/40 text-white rounded-xl px-4 py-3 text-sm placeholder-purple-700/50 focus:outline-none focus:border-purple-500/60"
+          className="flex-1 bg-[#1a1625] border border-purple-800/40 text-white rounded-xl px-4 py-3 text-sm placeholder-purple-700/50 focus:outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-900/30"
         />
         <button
           onClick={onSearch}
           disabled={loading}
-          className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition-colors shrink-0"
+          className="shimmer-btn bg-gradient-to-r from-purple-600 via-violet-500 to-purple-600 hover:from-purple-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition-colors shrink-0"
         >
           {loading ? '...' : 'Consult'}
         </button>
