@@ -4,7 +4,7 @@ import BossCard from './components/BossCard'
 import ChatPanel from './components/ChatPanel'
 import SearchBar from './components/SearchBar'
 
-const API = 'http://127.0.0.1:8000'
+const API = 'https://grimoire-production-5719.up.railway.app'
 
 export default function App() {
   const [query, setQuery] = useState('')
