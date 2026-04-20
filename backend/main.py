@@ -12,9 +12,15 @@ from google import genai
 
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env file!")
+    raise ValueError("GEMINI_API_KEY not found!")
 
 client = genai.Client(api_key=api_key)
+
+MODELS_TO_TRY = [
+    "models/gemini-2.5-flash",
+    "models/gemini-2.0-flash",
+    "models/gemini-2.0-flash-lite",
+]
 
 app = FastAPI()
 
@@ -45,7 +51,6 @@ class ChatRequest(BaseModel):
 
 
 async def scrape_fandom(query: str, game: str) -> str:
-    """Scrape Fandom wiki for boss/enemy info."""
     game_slug = game.lower().replace(" ", "-").replace("'", "")
     query_slug = query.replace(" ", "_")
 
@@ -54,32 +59,24 @@ async def scrape_fandom(query: str, game: str) -> str:
         f"https://{game_slug}.fandom.com/wiki/Special:Search?query={query.replace(' ', '+')}",
     ]
 
-    async with httpx.AsyncClient(headers=FANDOM_HEADERS, timeout=10, follow_redirects=True) as client:
+    async with httpx.AsyncClient(headers=FANDOM_HEADERS, timeout=10, follow_redirects=True) as client_http:
         for url in urls_to_try:
             try:
-                response = await client.get(url)
+                response = await client_http.get(url)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.text, "html.parser")
-
-                    # Remove nav, footer, ads, scripts
-                    for tag in soup(["script", "style", "nav", "footer", "aside", ".mw-editsection"]):
+                    for tag in soup(["script", "style", "nav", "footer", "aside"]):
                         tag.decompose()
-
-                    # Get main content
                     content = soup.find("div", {"class": "mw-parser-output"})
                     if content:
                         text = content.get_text(separator="\n", strip=True)
-                        # Limit to first 4000 chars to stay within token limits
                         return text[:4000]
             except Exception:
                 continue
-
     return ""
 
 
 async def ask_gemini_lookup(query: str, game: str, scraped_text: str) -> dict:
-    """Ask Gemini to extract structured boss info."""
-
     if scraped_text:
         context = f"Here is information scraped from the {game} wiki about '{query}':\n\n{scraped_text}"
     else:
@@ -106,27 +103,44 @@ Extract information about '{query}' from '{game}' and return ONLY a valid JSON o
 If a field has no information, use an empty array [] or "Unknown".
 Return ONLY the JSON object, no other text."""
 
-    try:
-        response = client.models.generate_content(model="models/gemini-2.5-flash", contents=prompt) 
-        text = response.text.strip()
-        # Strip markdown code fences if present
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        return json.loads(text.strip())
-    except Exception as e:
-        return {
-            "name": query,
-            "type": "unknown",
-            "lore": "The ancient tomes are unclear on this matter...",
-            "weaknesses": [],
-            "resistances": [],
-            "loot": [],
-            "tips": ["Grimoire could not retrieve data. Try a different spelling."],
-            "difficulty": "Unknown",
-            "error": str(e)
-        }
+    for model_name in MODELS_TO_TRY:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            text = response.text.strip()
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            return json.loads(text.strip())
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e) or "429" in str(e):
+                continue
+            return {
+                "name": query,
+                "type": "unknown",
+                "lore": "The ancient tomes are unclear on this matter...",
+                "weaknesses": [],
+                "resistances": [],
+                "loot": [],
+                "tips": ["Grimoire could not retrieve data. Try a different spelling."],
+                "difficulty": "Unknown",
+                "error": str(e)
+            }
+
+    return {
+        "name": query,
+        "type": "unknown",
+        "lore": "The ancient tomes are overwhelmed with seekers. Try again in a moment.",
+        "weaknesses": [],
+        "resistances": [],
+        "loot": [],
+        "tips": ["All models are currently busy. Please try again in 30 seconds."],
+        "difficulty": "Unknown",
+        "error": "All models unavailable"
+    }
 
 
 @app.post("/lookup")
@@ -147,55 +161,24 @@ async def chat(req: ChatRequest):
 
 {personality}
 
-Context about '{req.boss_context}' the player is asking about:
-(This was already looked up — use this as your knowledge base)
-Query was: {req.query}
-
-Player's question: {req.message}
+The player is asking about: {req.boss_context}
+Their question: {req.message}
 
 Answer helpfully in 2-4 sentences. Stay in character."""
 
-    try:
-     MODELS_TO_TRY = ["models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite"]
-    
     for model_name in MODELS_TO_TRY:
         try:
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt
             )
-            text = response.text.strip()
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-            return json.loads(text.strip())
+            return {"reply": response.text.strip()}
         except Exception as e:
-            if "503" in str(e) or "UNAVAILABLE" in str(e):
+            if "503" in str(e) or "UNAVAILABLE" in str(e) or "429" in str(e):
                 continue
-            return {
-                "name": query,
-                "type": "unknown",
-                "lore": "The ancient tomes are unclear on this matter...",
-                "weaknesses": [],
-                "resistances": [],
-                "loot": [],
-                "tips": ["Grimoire could not retrieve data. Try a different spelling."],
-                "difficulty": "Unknown",
-                "error": str(e)
-            }
-    
-    return {
-        "name": query,
-        "type": "unknown", 
-        "lore": "The ancient tomes are overwhelmed with seekers. Try again in a moment.",
-        "weaknesses": [],
-        "resistances": [],
-        "loot": [],
-        "tips": ["All models are currently busy. Please try again in 30 seconds."],
-        "difficulty": "Unknown",
-        "error": "All models unavailable"
-    }
+            return {"reply": "The grimoire pages blur... try again, seeker."}
+
+    return {"reply": "The ancient tomes are overwhelmed. Please try again in a moment."}
 
 
 @app.get("/health")
