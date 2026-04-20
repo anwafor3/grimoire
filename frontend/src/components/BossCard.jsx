@@ -51,6 +51,18 @@ const isOverloaded = data.error && (
   return (
     <div className="bg-[#1a1625] border border-purple-900/40 rounded-2xl p-6 flex flex-col gap-5">
 
+      {/* Boss image */}
+      {data.image_url && (
+        <div className="w-full h-48 rounded-xl overflow-hidden mb-2">
+          <img
+            src={data.image_url}
+            alt={data.name}
+            className="w-full h-full object-cover object-top"
+            onError={e => e.target.style.display='none'}
+          />
+        </div>
+      )}
+
       {/* Name + meta */}
       <div>
         <div className="flex items-start justify-between gap-3 mb-2">
