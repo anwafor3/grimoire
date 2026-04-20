@@ -1,0 +1,167 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+import httpx
+import json
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from bs4 import BeautifulSoup
+from google import genai
+
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found in .env file!")
+
+client = genai.Client(api_key=api_key)
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+FANDOM_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; GrimoireBot/1.0)"
+}
+
+
+class LookupRequest(BaseModel):
+    query: str
+    game: str
+
+
+class ChatRequest(BaseModel):
+    query: str
+    game: str
+    boss_context: str
+    message: str
+    arcane_mode: bool = False
+
+
+async def scrape_fandom(query: str, game: str) -> str:
+    """Scrape Fandom wiki for boss/enemy info."""
+    game_slug = game.lower().replace(" ", "-").replace("'", "")
+    query_slug = query.replace(" ", "_")
+
+    urls_to_try = [
+        f"https://{game_slug}.fandom.com/wiki/{query_slug}",
+        f"https://{game_slug}.fandom.com/wiki/Special:Search?query={query.replace(' ', '+')}",
+    ]
+
+    async with httpx.AsyncClient(headers=FANDOM_HEADERS, timeout=10, follow_redirects=True) as client:
+        for url in urls_to_try:
+            try:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, "html.parser")
+
+                    # Remove nav, footer, ads, scripts
+                    for tag in soup(["script", "style", "nav", "footer", "aside", ".mw-editsection"]):
+                        tag.decompose()
+
+                    # Get main content
+                    content = soup.find("div", {"class": "mw-parser-output"})
+                    if content:
+                        text = content.get_text(separator="\n", strip=True)
+                        # Limit to first 4000 chars to stay within token limits
+                        return text[:4000]
+            except Exception:
+                continue
+
+    return ""
+
+
+async def ask_gemini_lookup(query: str, game: str, scraped_text: str) -> dict:
+    """Ask Gemini to extract structured boss info."""
+
+    if scraped_text:
+        context = f"Here is information scraped from the {game} wiki about '{query}':\n\n{scraped_text}"
+    else:
+        context = f"Use your training knowledge about the game '{game}' to answer about '{query}'."
+
+    prompt = f"""You are Grimoire, a mystical familiar spirit who helps RPG players.
+
+{context}
+
+Extract information about '{query}' from '{game}' and return ONLY a valid JSON object with exactly this structure:
+{{
+  "name": "exact name of the boss/enemy/item",
+  "type": "boss" or "enemy" or "item" or "location",
+  "lore": "2-3 sentence atmospheric lore description",
+  "weaknesses": ["weakness1", "weakness2"],
+  "resistances": ["resistance1", "resistance2"],
+  "loot": [
+    {{"item": "item name", "chance": "drop rate or guaranteed"}}
+  ],
+  "tips": ["tip1", "tip2", "tip3"],
+  "difficulty": "Easy" or "Medium" or "Hard" or "Legendary"
+}}
+
+If a field has no information, use an empty array [] or "Unknown".
+Return ONLY the JSON object, no other text."""
+
+    try:
+        response = client.models.generate_content(model="models/gemini-2.5-flash", contents=prompt) 
+        text = response.text.strip()
+        # Strip markdown code fences if present
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        return json.loads(text.strip())
+    except Exception as e:
+        return {
+            "name": query,
+            "type": "unknown",
+            "lore": "The ancient tomes are unclear on this matter...",
+            "weaknesses": [],
+            "resistances": [],
+            "loot": [],
+            "tips": ["Grimoire could not retrieve data. Try a different spelling."],
+            "difficulty": "Unknown",
+            "error": str(e)
+        }
+
+
+@app.post("/lookup")
+async def lookup(req: LookupRequest):
+    scraped = await scrape_fandom(req.query, req.game)
+    result = await ask_gemini_lookup(req.query, req.game, scraped)
+    return result
+
+
+@app.post("/chat")
+async def chat(req: ChatRequest):
+    if req.arcane_mode:
+        personality = "Speak as an ancient cryptic familiar spirit — mysterious, poetic, archaic. Use 'thee', 'thy', 'hath'. Keep answers helpful but dramatic."
+    else:
+        personality = "Speak as a knowledgeable gaming companion — friendly, direct, and helpful. Keep answers concise."
+
+    prompt = f"""You are Grimoire, a magical familiar spirit helping a player with {req.game}.
+
+{personality}
+
+Context about '{req.boss_context}' the player is asking about:
+(This was already looked up — use this as your knowledge base)
+Query was: {req.query}
+
+Player's question: {req.message}
+
+Answer helpfully in 2-4 sentences. Stay in character."""
+
+    try:
+        response = client.models.generate_content(model="models/gemini-2.5-flash", contents=prompt) 
+        return {"reply": response.text.strip()}
+    except Exception as e:
+        return {"reply": "The grimoire pages blur... try again, seeker."}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "Grimoire is awakened"}
