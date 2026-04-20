@@ -8,9 +8,17 @@ const GAMES = [
   "Baldur's Gate 3",
   'Final Fantasy XVI',
   'Monster Hunter World',
-  'God of War',
+  'God of War 2018',
+  'God of War Ragnarök',
   'Hollow Knight',
   'Zelda: Tears of the Kingdom',
+  'Black Myth: Wukong',
+  'Lies of P',
+  'The First Beserker: Khazan',
+  'Nioh 2',
+  'Wo Long: Fallen Dynasty',
+  'Remnant 2',
+  'Star Wars Jedi: Survivor',
 ]
 
 export default function SearchBar({ query, setQuery, game, setGame, onSearch, loading }) {
