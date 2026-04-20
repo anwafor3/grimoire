@@ -70,13 +70,25 @@ async def scrape_fandom(query: str, game: str) -> tuple[str, str]:
 
                     # Grab first image from infobox
                     image_url = ""
+                    # Try multiple selectors Fandom uses
+                    img = None
                     infobox = soup.find("aside", {"class": "portable-infobox"})
                     if infobox:
                         img = infobox.find("img")
-                        if img and img.get("src"):
-                            src = img["src"]
-                            if "data:image" not in src:
-                                image_url = src.split("/revision")[0]
+                    if not img:
+                        # Try figure tags
+                        figure = soup.find("figure", {"class": "pi-item"})
+                        if figure:
+                            img = figure.find("img")
+                    if not img:
+                        # Try first image in content
+                        content_div = soup.find("div", {"class": "mw-parser-output"})
+                        if content_div:
+                            img = content_div.find("img")
+                    if img and img.get("src"):
+                        src = img.get("src", "")
+                        if "data:image" not in src and src.startswith("http"):
+                            image_url = src.split("/revision")[0]
 
                     content = soup.find("div", {"class": "mw-parser-output"})
                     if content:
