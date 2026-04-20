@@ -23,8 +23,7 @@ export default function SearchBar({ query, setQuery, game, setGame, onSearch, lo
       <select
         value={game}
         onChange={e => setGame(e.target.value)}
-        className="bg-[#1a1625] border border-purple-800/40 text-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/60 sm:w-48 shrink-0"
-      >
+        className="shimmer-btn bg-gradient-to-r from-purple-600 via-violet-500 to-purple-600 hover:from-purple-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition-colors shrink-0"
         {GAMES.map(g => (
           <option key={g} value={g}>{g}</option>
         ))}
