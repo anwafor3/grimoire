@@ -68,8 +68,8 @@ export default function App() {
           <div className="text-center mb-12 pt-8">
             <div className="relative inline-block mb-8">
               <div className="absolute inset-0 rounded-full bg-purple-600/20 blur-2xl scale-150" />
-              <div className="relative w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-purple-800/40 to-violet-900/40 border border-purple-600/30 flex items-center justify-center text-5xl shadow-xl shadow-purple-900/40">
-                📖
+              <div className="float-icon relative w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-purple-800/40 to-violet-900/40 border border-purple-600/30 flex items-center justify-center text-5xl shadow-xl shadow-purple-900/40">
+                 📖
               </div>
             </div>
 
