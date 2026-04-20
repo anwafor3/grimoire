@@ -16,9 +16,9 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-MODELS_TO_TRY = [
-    "models/gemini-2.5-flash",
+MMODELS_TO_TRY = [
     "models/gemini-2.0-flash",
+    "models/gemini-2.5-flash",
     "models/gemini-2.0-flash-lite",
 ]
 
