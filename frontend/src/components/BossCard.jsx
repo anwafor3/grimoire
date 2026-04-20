@@ -24,14 +24,22 @@ export default function BossCard({ data }) {
   const typeIcon = TYPE_ICONS[data.type]
   const isFailed = data.error || (data.tips?.length === 1 && data.tips[0].includes('could not retrieve'))
 
-  const randomFallback = FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)]
+const isOverloaded = data.error && (
+    data.error.includes("503") || 
+    data.error.includes("UNAVAILABLE") || 
+    data.error.includes("All models")
+  )
+
+  const errorMessage = isOverloaded
+    ? "The ancient tomes are overwhelmed with seekers. Try again in a moment."
+    : `No record of "${data.name}" was found in the ${data.type === 'unknown' ? 'grimoire' : data.name}. Check your spelling or try a different game.`
 
   if (isFailed) {
     return (
       <div className="bg-[#1a1625] border border-purple-900/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 min-h-[200px]">
-        <div className="text-4xl opacity-40">📖</div>
+        <div className="text-4xl opacity-40">{isOverloaded ? '📖' : '🔍'}</div>
         <p className="text-purple-400/70 text-sm text-center leading-relaxed max-w-xs">
-          {randomFallback}
+          {errorMessage}
         </p>
         <p className="text-purple-600/40 text-xs text-center">
           The chat is still available — ask Grimoire directly.
