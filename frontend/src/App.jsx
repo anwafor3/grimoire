@@ -91,7 +91,7 @@ export default function App() {
                 <button
                   key={s.label}
                   onClick={() => { setQuery(s.label); setGame(s.game); }}
-                  className="text-xs px-3 py-1.5 rounded-full border border-purple-800/40 text-purple-400/70 hover:border-purple-600/60 hover:text-purple-300 transition-all"
+                  className="text-xs px-3 py-1.5 rounded-full border border-purple-800/40 text-purple-400/70 hover:border-purple-500/60 hover:text-purple-200 hover:bg-purple-500/10 hover:shadow-md hover:shadow-purple-900/40 transition-all duration-200"
                 >
                   {s.label}
                 </button>
