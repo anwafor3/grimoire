@@ -156,10 +156,46 @@ Player's question: {req.message}
 Answer helpfully in 2-4 sentences. Stay in character."""
 
     try:
-        response = client.models.generate_content(model="models/gemini-2.5-flash", contents=prompt) 
-        return {"reply": response.text.strip()}
-    except Exception as e:
-        return {"reply": "The grimoire pages blur... try again, seeker."}
+     MODELS_TO_TRY = ["models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite"]
+    
+    for model_name in MODELS_TO_TRY:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            text = response.text.strip()
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            return json.loads(text.strip())
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                continue
+            return {
+                "name": query,
+                "type": "unknown",
+                "lore": "The ancient tomes are unclear on this matter...",
+                "weaknesses": [],
+                "resistances": [],
+                "loot": [],
+                "tips": ["Grimoire could not retrieve data. Try a different spelling."],
+                "difficulty": "Unknown",
+                "error": str(e)
+            }
+    
+    return {
+        "name": query,
+        "type": "unknown", 
+        "lore": "The ancient tomes are overwhelmed with seekers. Try again in a moment.",
+        "weaknesses": [],
+        "resistances": [],
+        "loot": [],
+        "tips": ["All models are currently busy. Please try again in 30 seconds."],
+        "difficulty": "Unknown",
+        "error": "All models unavailable"
+    }
 
 
 @app.get("/health")
