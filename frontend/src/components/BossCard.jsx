@@ -11,12 +11,34 @@ const TYPE_ICONS = {
   enemy: '⚔',
   item: '✦',
   location: '◎',
-  unknown: '?',
 }
+
+const FALLBACK_MESSAGES = [
+  "The ancient tomes are overwhelmed with seekers. Try again in a moment.",
+  "The spirits are busy — the grimoire pages blur. Try again shortly.",
+  "Too many seekers consult the grimoire at once. Wait a moment and try again.",
+]
 
 export default function BossCard({ data }) {
   const diffColor = DIFFICULTY_COLORS[data.difficulty] || DIFFICULTY_COLORS.Unknown
-  const typeIcon = TYPE_ICONS[data.type] || '?'
+  const typeIcon = TYPE_ICONS[data.type]
+  const isFailed = data.error || (data.tips?.length === 1 && data.tips[0].includes('could not retrieve'))
+
+  const randomFallback = FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)]
+
+  if (isFailed) {
+    return (
+      <div className="bg-[#1a1625] border border-purple-900/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 min-h-[200px]">
+        <div className="text-4xl opacity-40">📖</div>
+        <p className="text-purple-400/70 text-sm text-center leading-relaxed max-w-xs">
+          {randomFallback}
+        </p>
+        <p className="text-purple-600/40 text-xs text-center">
+          The chat is still available — ask Grimoire directly.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-[#1a1625] border border-purple-900/40 rounded-2xl p-6 flex flex-col gap-5">
@@ -25,20 +47,26 @@ export default function BossCard({ data }) {
       <div>
         <div className="flex items-start justify-between gap-3 mb-2">
           <h2 className="text-2xl font-bold text-purple-100 leading-tight">{data.name}</h2>
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border shrink-0 ${diffColor}`}>
-            {data.difficulty}
-          </span>
+          {data.difficulty && data.difficulty !== 'Unknown' && (
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full border shrink-0 ${diffColor}`}>
+              {data.difficulty}
+            </span>
+          )}
         </div>
-        <span className="text-xs text-purple-500 uppercase tracking-widest">
-          {typeIcon} {data.type}
-        </span>
+        {typeIcon && (
+          <span className="text-xs text-purple-500 uppercase tracking-widest">
+            {typeIcon} {data.type}
+          </span>
+        )}
       </div>
 
       {/* Lore */}
-      <div>
-        <h3 className="text-xs text-purple-500 uppercase tracking-widest mb-2">Lore</h3>
-        <p className="text-purple-200/80 text-sm leading-relaxed italic">{data.lore}</p>
-      </div>
+      {data.lore && data.lore !== 'Unknown' && (
+        <div>
+          <h3 className="text-xs text-purple-500 uppercase tracking-widest mb-2">Lore</h3>
+          <p className="text-purple-200/80 text-sm leading-relaxed italic">{data.lore}</p>
+        </div>
+      )}
 
       {/* Weaknesses */}
       {data.weaknesses?.length > 0 && (
