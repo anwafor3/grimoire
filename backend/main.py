@@ -50,7 +50,7 @@ class ChatRequest(BaseModel):
     arcane_mode: bool = False
 
 
-async def scrape_fandom(query: str, game: str) -> str:
+async def scrape_fandom(query: str, game: str) -> tuple[str, str]:
     game_slug = game.lower().replace(" ", "-").replace("'", "")
     query_slug = query.replace(" ", "_")
 
@@ -67,13 +67,24 @@ async def scrape_fandom(query: str, game: str) -> str:
                     soup = BeautifulSoup(response.text, "html.parser")
                     for tag in soup(["script", "style", "nav", "footer", "aside"]):
                         tag.decompose()
+
+                    # Grab first image from infobox
+                    image_url = ""
+                    infobox = soup.find("aside", {"class": "portable-infobox"})
+                    if infobox:
+                        img = infobox.find("img")
+                        if img and img.get("src"):
+                            src = img["src"]
+                            if "data:image" not in src:
+                                image_url = src.split("/revision")[0]
+
                     content = soup.find("div", {"class": "mw-parser-output"})
                     if content:
                         text = content.get_text(separator="\n", strip=True)
-                        return text[:4000]
+                        return text[:4000], image_url
             except Exception:
                 continue
-    return ""
+    return "", ""
 
 
 async def ask_gemini_lookup(query: str, game: str, scraped_text: str) -> dict:
@@ -143,10 +154,11 @@ Return ONLY the JSON object, no other text."""
     }
 
 
-@app.post("/lookup")
+@@app.post("/lookup")
 async def lookup(req: LookupRequest):
-    scraped = await scrape_fandom(req.query, req.game)
+    scraped, image_url = await scrape_fandom(req.query, req.game)
     result = await ask_gemini_lookup(req.query, req.game, scraped)
+    result["image_url"] = image_url
     return result
 
 
