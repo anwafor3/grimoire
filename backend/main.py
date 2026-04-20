@@ -154,7 +154,7 @@ Return ONLY the JSON object, no other text."""
     }
 
 
-@@app.post("/lookup")
+@app.post("/lookup")
 async def lookup(req: LookupRequest):
     scraped, image_url = await scrape_fandom(req.query, req.game)
     result = await ask_gemini_lookup(req.query, req.game, scraped)
