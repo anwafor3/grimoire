@@ -44,11 +44,14 @@ export default function SearchBar({ query, setQuery, game, setGame, onSearch, lo
         onChange={e => setGame(e.target.value)}
         className="bg-[#1a1625] border border-purple-800/40 text-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/60 sm:w-48 shrink-0"
       >
-        {GAMES.map(g => (
-          <option key={g} value={g}>{g}</option>
-        ))}
+        <optgroup label="Souls-Like">
+          {GAMES.map(g => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </optgroup>
 
         <optgroup label="Gacha Games">
+          
           {GACHA_GAMES.map(g=>(
             <option key={g} value={g}>{g}</option>
           ))}
