@@ -21,6 +21,17 @@ const GAMES = [
   'Star Wars Jedi: Survivor',
 ]
 
+// Extra titles in the dropdown menu
+const GACHA_GAMES = [
+  'Genshin Impact',
+  'Twisted Wonderland',
+  'Fate/Grand Order',
+  'Infinity Nikki',
+  'Honkai: Star Rail',
+  'Zenless Zone Zero',
+  'Wuthering Waves'
+]
+
 export default function SearchBar({ query, setQuery, game, setGame, onSearch, loading }) {
   function handleKey(e) {
     if (e.key === 'Enter') onSearch()
@@ -36,6 +47,12 @@ export default function SearchBar({ query, setQuery, game, setGame, onSearch, lo
         {GAMES.map(g => (
           <option key={g} value={g}>{g}</option>
         ))}
+
+        <optgroup label="Gacha Games">
+          {GACHA_GAMES.map(g=>(
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </optgroup>
       </select>
 
       <div className="flex flex-1 gap-3">
