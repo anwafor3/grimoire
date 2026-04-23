@@ -12,6 +12,7 @@ export default function App() {
   const [bossData, setBossData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [arcaneMode, setArcaneMode] = useState(false)
+  const [arcaneTransition, setArcaneTransition] = useState(false)
   const [error, setError] = useState('')
 
   async function handleLookup() {
@@ -28,8 +29,49 @@ export default function App() {
     setLoading(false)
   }
 
+  function toggleArcane() {
+    if (!arcaneMode) {
+      setArcaneTransition(true)
+      setTimeout(() => setArcaneTransition(false), 1600)
+    }
+    setArcaneMode(!arcaneMode)
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0812] text-white relative overflow-x-hidden">
+
+      {/* Arcane transition overlay */}
+      {arcaneTransition && (
+        <div className="fixed inset-0 z-50 pointer-events-none" style={{background:'rgba(10,8,18,0.95)'}}>
+          {['10% 10%','80% 15%','15% 75%','75% 70%','45% 20%','20% 45%','70% 40%'].map((pos,i) => (
+            <div key={i} style={{
+              position:'absolute',
+              left:pos.split(' ')[0],
+              top:pos.split(' ')[1],
+              fontSize:'28px',
+              color:'#6d28d9',
+              animation:`runefade 1.4s ${i*0.08}s ease-in-out forwards`,
+              opacity:0
+            }}>✦</div>
+          ))}
+          {[200,140,80].map((size,i) => (
+            <div key={i} style={{
+              position:'absolute',
+              left:'50%',
+              top:'50%',
+              width:size,
+              height:size,
+              marginLeft:-size/2,
+              marginTop:-size/2,
+              borderRadius:'50%',
+              border:'2px solid #7c3aed',
+              boxShadow:'0 0 20px #7c3aed',
+              animation:`ritualRing 1.2s ${i*0.15}s ease-out forwards`,
+              opacity:0
+            }}/>
+          ))}
+        </div>
+      )}
 
       {/* Animated background orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -50,7 +92,7 @@ export default function App() {
           </div>
         </div>
         <button
-          onClick={() => setArcaneMode(!arcaneMode)}
+          onClick={toggleArcane}
           className={`text-xs px-4 py-2 rounded-full border transition-all duration-300 ${
             arcaneMode
               ? 'bg-purple-600/25 border-purple-500/50 text-purple-200 shadow-md shadow-purple-900/30'
@@ -69,25 +111,25 @@ export default function App() {
             <div className="relative inline-block mb-8">
               <div className="absolute inset-0 rounded-full bg-purple-600/20 blur-2xl scale-150" />
               <div className="float-icon relative w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-purple-800/40 to-violet-900/40 border border-purple-600/30 flex items-center justify-center text-5xl shadow-xl shadow-purple-900/40">
-                 📖
+                📖
               </div>
             </div>
 
             <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-purple-100 to-purple-400 mb-4 leading-tight">
-  What haunts your path?
-</h1>
-<p className="text-purple-400/60 text-lg max-w-md mx-auto leading-relaxed">
-  Speak the name of any boss, character, or enemy — from soulslike dungeons to gacha realms. Grimoire will consult the ancient tomes.
-</p>
+              What haunts your path?
+            </h1>
+            <p className="text-purple-400/60 text-lg max-w-md mx-auto leading-relaxed">
+              Speak the name of any boss, character, or enemy — from soulslike dungeons to gacha realms. Grimoire will consult the ancient tomes.
+            </p>
 
             <div className="flex flex-wrap gap-2 justify-center mt-8">
-             {[
-  {label: 'Malenia', game: 'Elden Ring'},
-  {label: 'Lady Butterfly', game: 'Sekiro'},
-  {label: 'Baldur', game: 'God of War 2018'},
-  {label: 'Haytor', game: 'Zenless Zone Zero'},
-  {label: 'Raiden Shogun', game: 'Genshin Impact'},
-].map(s => (
+              {[
+                {label: 'Malenia', game: 'Elden Ring'},
+                {label: 'Margit', game: 'Elden Ring'},
+                {label: 'Lady Butterfly', game: 'Sekiro'},
+                {label: 'Orphan of Kos', game: 'Bloodborne'},
+                {label: 'Raiden Shogun', game: 'Genshin Impact'},
+              ].map(s => (
                 <button
                   key={s.label}
                   onClick={() => { setQuery(s.label); setGame(s.game); }}
