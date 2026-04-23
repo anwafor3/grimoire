@@ -36,6 +36,16 @@ FANDOM_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; GrimoireBot/1.0)"
 }
 
+GAME_CONFIG = {
+    "Genshin Impact": "genshin-impact",
+    "Twisted Wonderland": "twistedwonderland",
+    "Fate/Grand Order": "fategrandorder",
+    "Infinity Nikki": "infinity-nikki",
+    "Honkai: Star Rail": "honkaistarrail",
+    "Zenless Zone Zero": "zenless-zone-zero",
+    "Wuthering Waves": "wuthering-waves"
+}
+
 
 class LookupRequest(BaseModel):
     query: str
@@ -51,7 +61,11 @@ class ChatRequest(BaseModel):
 
 
 async def scrape_fandom(query: str, game: str) -> tuple[str, str]:
-    game_slug = game.lower().replace(" ", "-").replace("'", "")
+    if game in GAME_CONFIG:
+        game_slug = GAME_CONFIG[game]
+    else:
+        game_slug = game.lower().replace(" ", "-").replace("'", "")
+
     query_slug = query.replace(" ", "_")
 
     urls_to_try = [
@@ -68,20 +82,16 @@ async def scrape_fandom(query: str, game: str) -> tuple[str, str]:
                     for tag in soup(["script", "style", "nav", "footer", "aside"]):
                         tag.decompose()
 
-                    # Grab first image from infobox
                     image_url = ""
-                    # Try multiple selectors Fandom uses
                     img = None
                     infobox = soup.find("aside", {"class": "portable-infobox"})
                     if infobox:
                         img = infobox.find("img")
                     if not img:
-                        # Try figure tags
                         figure = soup.find("figure", {"class": "pi-item"})
                         if figure:
                             img = figure.find("img")
                     if not img:
-                        # Try first image in content
                         content_div = soup.find("div", {"class": "mw-parser-output"})
                         if content_div:
                             img = content_div.find("img")
