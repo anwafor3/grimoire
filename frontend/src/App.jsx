@@ -74,20 +74,20 @@ export default function App() {
             </div>
 
             <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-purple-100 to-purple-400 mb-4 leading-tight">
-              What haunts your path?
-            </h1>
-            <p className="text-purple-400/60 text-lg max-w-md mx-auto leading-relaxed">
-              Speak the name of any boss, enemy, or creature. Grimoire will consult the ancient tomes.
-            </p>
+  What haunts your path?
+</h1>
+<p className="text-purple-400/60 text-lg max-w-md mx-auto leading-relaxed">
+  Speak the name of any boss, character, or enemy — from soulslike dungeons to gacha realms. Grimoire will consult the ancient tomes.
+</p>
 
             <div className="flex flex-wrap gap-2 justify-center mt-8">
-              {[
-                {label: 'Malenia', game: 'Elden Ring'},
-                {label: 'Margit', game: 'Elden Ring'},
-                {label: 'Lady Butterfly', game: 'Sekiro'},
-                {label: 'Orphan of Kos', game: 'Bloodborne'},
-                {label: 'Radahn', game: 'Elden Ring'},
-              ].map(s => (
+             {[
+  {label: 'Malenia', game: 'Elden Ring'},
+  {label: 'Lady Butterfly', game: 'Sekiro'},
+  {label: 'Baldur', game: 'God of War 2018'},
+  {label: 'Haytor', game: 'Zenless Zone Zero'},
+  {label: 'Raiden Shogun', game: 'Genshin Impact'},
+].map(s => (
                 <button
                   key={s.label}
                   onClick={() => { setQuery(s.label); setGame(s.game); }}
