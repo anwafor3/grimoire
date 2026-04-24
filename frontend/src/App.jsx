@@ -129,8 +129,8 @@ export default function App() {
   {label: 'Baldur', game: 'God of War 2018'},
   {label: 'Haytor', game: 'Zenless Zone Zero'},
   {label: 'Raiden Shogun', game: 'Genshin Impact'},
-].map(s => (
               ].map(s => (
+                
                 <button
                   key={s.label}
                   onClick={() => { setQuery(s.label); setGame(s.game); }}
