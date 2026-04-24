@@ -125,10 +125,11 @@ export default function App() {
             <div className="flex flex-wrap gap-2 justify-center mt-8">
               {[
                 {label: 'Malenia', game: 'Elden Ring'},
-                {label: 'Margit', game: 'Elden Ring'},
-                {label: 'Lady Butterfly', game: 'Sekiro'},
-                {label: 'Orphan of Kos', game: 'Bloodborne'},
-                {label: 'Raiden Shogun', game: 'Genshin Impact'},
+  {label: 'Lady Butterfly', game: 'Sekiro'},
+  {label: 'Baldur', game: 'God of War 2018'},
+  {label: 'Haytor', game: 'Zenless Zone Zero'},
+  {label: 'Raiden Shogun', game: 'Genshin Impact'},
+].map(s => (
               ].map(s => (
                 <button
                   key={s.label}
