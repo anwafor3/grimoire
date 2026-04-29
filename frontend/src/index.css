@@ -18,3 +18,12 @@
 .float-icon {
   animation: float 3s ease-in-out infinite;
 }
+
+@keyframes runefade {
+  0%{opacity:0} 40%{opacity:1} 70%{opacity:1} 100%{opacity:0}
+}
+@keyframes ritualRing {
+  0%{transform:scale(0) rotate(0deg);opacity:0.9}
+  60%{transform:scale(1.2) rotate(180deg);opacity:0.8}
+  100%{transform:scale(2.5) rotate(360deg);opacity:0}
+}
