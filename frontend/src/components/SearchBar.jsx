@@ -1,111 +1,152 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import axios from 'axios'
 
-const GAMES = [
-  'Elden Ring',
-  'Dark Souls',
-  'Dark Souls 2',
-  'Dark Souls 3',
-  'Bloodborne',
-  'Sekiro',
-  "Baldur's Gate 3",
-  'Final Fantasy XVI',
-  'Monster Hunter World',
-  'God of War 2018',
-  'God of War Ragnarök',
-  'Hollow Knight',
-  'Zelda: Tears of the Kingdom',
-  'Black Myth: Wukong',
-  'Lies of P',
-  'The First Beserker: Khazan',
-  'Nioh 2',
-  'Wo Long: Fallen Dynasty',
-  'Remnant 2',
-  'Star Wars Jedi: Survivor',
-]
-
-const GACHA_GAMES = [
-  'Genshin Impact',
-  'Twisted Wonderland',
-  'Fate/Grand Order',
-  'Infinity Nikki',
-  'Honkai: Star Rail',
-  'Zenless Zone Zero',
-  'Wuthering Waves'
-]
-
-export default function SearchBar({ query, setQuery, game, setGame, onSearch, loading }) {
+export default function ChatPanel({ query, game, bossName, arcaneMode, api }) {
+  const [messages, setMessages] = useState([
+    {
+      role: 'grimoire',
+      text: arcaneMode
+        ? `The ancient pages stir... I sense thee seeks knowledge of ${bossName}. What wouldst thou know?`
+        : `I've pulled everything I know about ${bossName}. What do you want to know?`,
+    }
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [isMuted, setIsMuted] = useState(false) 
+  const bottomRef = useRef(null)
 
-  function handleKey(e) {
-    if (e.key === 'Enter') onSearch()
-  }
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
-  const startVoiceSearch = () => {
+  // --- TEXT-TO-SPEECH ---
+  const speak = (text) => {
+    if (isMuted) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    
+    utterance.voice = voices.find(v => v.name.includes('Male')) || voices[0];
+    utterance.pitch = arcaneMode ? 0.7 : 1.0;
+    utterance.rate = 0.9;
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === 'grimoire') {
+      speak(lastMessage.text);
+    }
+  }, [messages, isMuted]);
+
+  // --- SPEECH-TO-TEXT ---
+  const startVoiceInput = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
-
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      setQuery(transcript.replace(/\.$/g, ''));
+      setInput(transcript.replace(/\.$/g, ''));
     };
-
     recognition.start();
   };
 
+  async function sendMessage() {
+    if (!input.trim() || loading) return
+    const userMsg = input.trim()
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }])
+    setLoading(true)
+
+    try {
+      const res = await axios.post(`${api}/chat`, {
+        query, game, boss_context: bossName, message: userMsg, arcane_mode: arcaneMode,
+      })
+      setMessages(prev => [...prev, { role: 'grimoire', text: res.data.reply }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'grimoire', text: 'The pages blur... try again.' }])
+    }
+    setLoading(false)
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row gap-3">
-      <select
-        value={game}
-        onChange={e => setGame(e.target.value)}
-        className="bg-[#1a1625] border border-purple-800/40 text-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/60 sm:w-48 shrink-0"
-      >
-        <optgroup label="Souls-Like">
-          {GAMES.map(g => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </optgroup>
-
-        <optgroup label="Gacha Games">
-          {GACHA_GAMES.map(g=>(
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </optgroup>
-      </select>
-
-      <div className="flex flex-1 gap-3 relative">
-        <input
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Search boss, enemy, or creature..."
-          className="flex-1 bg-[#1a1625] border border-purple-800/40 text-white rounded-xl px-4 py-3 pr-12 text-sm placeholder-purple-700/50 focus:outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-900/30"
-        />
-        
-        <button
-          type="button"
-          onClick={startVoiceSearch}
-          className={`absolute right-[115px] top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${
-            isListening ? 'listening-active text-red-500 bg-red-500/10' : 'text-purple-400 hover:text-purple-200'
-          }`}
+    <div className="bg-[#1a1625] border border-purple-900/40 rounded-2xl flex flex-col h-[520px]">
+      <div className="px-5 py-4 border-b border-purple-900/30 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+          <span className="text-sm text-purple-300 font-medium">Grimoire</span>
+          <span className="text-xs text-purple-600 ml-1">{arcaneMode ? '— arcane' : '— companion'}</span>
+        </div>
+        <button 
+          onClick={() => {
+            setIsMuted(!isMuted);
+            if (!isMuted) window.speechSynthesis.cancel();
+          }}
+          className="text-purple-400 hover:text-purple-200 transition-colors text-lg"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-          </svg>
+          {isMuted ? '🔇' : '🔊'}
         </button>
+      </div>
 
-        <button
-          onClick={onSearch}
-          disabled={loading}
-          className="shimmer-btn bg-gradient-to-r from-purple-600 via-violet-500 to-purple-600 hover:from-purple-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition-colors shrink-0"
-        >
-          {loading ? '...' : 'Consult'}
+      <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'grimoire' && (
+              <div className="w-7 h-7 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-sm shrink-0 mt-0.5">📖</div>
+            )}
+            <div className={`max-w-[80%] text-sm leading-relaxed px-4 py-2.5 rounded-2xl ${
+              msg.role === 'user' ? 'bg-purple-600/25 text-purple-100 rounded-tr-sm' : 'bg-[#241d35] text-purple-200/90 rounded-tl-sm'
+            }`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex gap-3 justify-start">
+            <div className="w-7 h-7 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-sm shrink-0">📖</div>
+            <div className="bg-[#241d35] px-4 py-3 rounded-2xl rounded-tl-sm">
+              <div className="flex gap-1.5 items-center">
+                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{animationDelay:'0ms'}} />
+                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{animationDelay:'150ms'}} />
+                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{animationDelay:'300ms'}} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="px-4 py-3 border-t border-purple-900/30 flex gap-2 relative">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Ask anything..."
+            className="w-full bg-[#0e0c15] border border-purple-800/30 text-white text-sm rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:border-purple-500/50"
+          />
+          <button
+            type="button"
+            onClick={startVoiceInput}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 transition-colors ${isListening ? 'listening-active text-red-500' : 'text-purple-500 hover:text-purple-300'}`}
+          >
+            🎤
+          </button>
+        </div>
+        <button onClick={sendMessage} disabled={loading} className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-sm transition-colors shrink-0">
+          ↑
         </button>
       </div>
     </div>
